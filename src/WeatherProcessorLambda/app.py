@@ -1,6 +1,4 @@
 import os
-from weather_service import get_weather
-from ai_summary import maybe_generate_summary
 from notify_service import send_sms, send_email, format_message
 
 

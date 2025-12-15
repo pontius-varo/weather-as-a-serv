@@ -2,6 +2,11 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Basic AWS SAM template
 
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+
 Globals:
   Function:
     Runtime: python3.11
@@ -11,23 +16,35 @@ Globals:
     LoggingConfig:
       LogFormat: JSON
 
-Resources:
-  HelloFunction:
+Resources :
+  WeatherProcessorLambda:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: hello-function
-      CodeUri: src/
+      FunctionName: !Sub weather-processor-lambda-${Env}
+      CodeUri: src/WeatherProcessorLambda
       Handler: app.lambda_handler
       Policies:
         - AWSLambdaBasicExecutionRole
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: arn:aws:secretsmanager:us-east-2:006818588520:secret:prod/weather-as-service-api-key-wz4uDw
+        # todo, give policy for SNS and SES
       Events:
-        HttpApi:
-          Type: HttpApi
+        # Event 1 (For josh, sends him a text)
+        JoshScheduledEvent:
+          Type: ScheduleV2
           Properties:
-            Path: /hello
-            Method: GET
+            ScheduleExpression: cron(0 6 * * ? *)
+            FlexibleTimeWindow:
+              Mode: FLEXIBLE
+              MaximumWindowInMinutes: 5
+            Input: '{"userDeliveryPreference":"SNS","userLocation":"Miami, US","userLang":"en"}'
+        # Event 2 (for antonio, sends him an email)
+        AntonioScheduledEvent:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: cron(0 6 * * ? *)
+            FlexibleTimeWindow:
+              Mode: FLEXIBLE
+              MaximumWindowInMinutes: 5
+            Input: '{"userDeliveryPreference":"SES","userLocation":"Loja, Ecuador","userLang":"en"}'
 
-Outputs:
-  ApiUrl:
-    Description: HTTP API endpoint URL
-    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
